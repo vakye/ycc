@@ -20,6 +20,8 @@ void EntryPoint(void)
 #define MAP_PRIVATE     (0x02)
 #define MAP_ANONYMOUS   (0x20)
 
+#define EINTR   (4)
+
 typedef enum
 {
 #if Architecture_X64
@@ -94,30 +96,47 @@ local void* MapExecutableMemory(void* Code, usize CodeSize)
     return (Result);
 }
 
+local usize LinuxWrite(s32 FileDescriptor, void* Data, usize Size)
+{
+    usize WrittenSoFar = 0;
+    while (WrittenSoFar < Size)
+    {
+        u8* Source = (u8*)Data + WrittenSoFar;
+        usize Remaining = Size - WrittenSoFar;
+
+        ssize Written = (ssize)LinuxSyscall(
+            SyscallNumber_Write,
+            FileDescriptor,
+            (usize)Source,
+            Remaining
+        );
+
+        if (Written < 0)
+        {
+            // NOTE(vak): Syscall may be interrupted (EINTR), so account for that.
+            ssize Error = -Written;
+            if (Error != EINTR)
+                break;
+        }
+        else
+        {
+            WrittenSoFar += Written;
+        }
+    }
+
+    return(WrittenSoFar);
+}
+
 local usize WriteStdOut(void* Data, usize Size, ...)
 {
-    ssize Written = (ssize)LinuxSyscall(
-        SyscallNumber_Write,
-        STDOUT_FILENO,
-        (usize)Data,
-        Size
-    );
-
-    usize Result = Maximum(0, Written);
-    return (Result);
+    usize Written = LinuxWrite(STDOUT_FILENO, Data, Size);
+    return (Written);
 }
 
 local usize WriteStdErr(void* Data, usize Size, ...)
 {
-    ssize Written = (ssize)LinuxSyscall(
-        SyscallNumber_Write,
-        STDERR_FILENO,
-        (usize)Data,
-        Size
-    );
-
-    usize Result = Maximum(0, Written);
-    return (Result);
+    usize Written = LinuxWrite(STDERR_FILENO, Data, Size);
+    return (Written);
 }
 
 local void Exit(u8 ExitCode)
