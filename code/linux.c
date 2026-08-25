@@ -12,10 +12,19 @@ void EntryPoint(void)
 #define STDOUT_FILENO (1)
 #define STDERR_FILENO (2)
 
+#define PROT_NONE   (0x00)
+#define PROT_READ   (0x01)
+#define PROT_WRITE  (0x02)
+#define PROT_EXEC   (0x04)
+
+#define MAP_PRIVATE     (0x02)
+#define MAP_ANONYMOUS   (0x20)
+
 typedef enum
 {
 #if Architecture_X64
     SyscallNumber_Write     = (1),
+    SyscallNumber_MMap      = (9),
     SyscallNumber_Exit      = (60),
 #else
 #   error Linux syscall numbers are not defined for this architecture
@@ -63,7 +72,29 @@ local ssize LinuxSyscallWithInfo(linux_syscall_info Info)
     return (Result);
 }
 
-local usize WriteStdOut(void* Data, usize Size)
+local void* MapExecutableMemory(void* Code, usize CodeSize)
+{
+    ssize MapResult = (ssize)LinuxSyscall(
+        SyscallNumber_MMap,
+        0,
+        CodeSize,
+        PROT_READ|PROT_WRITE|PROT_EXEC,
+        MAP_PRIVATE|MAP_ANONYMOUS,
+        -1,
+        0
+    );
+
+    void* Result = 0;
+    if (MapResult > 0)
+    {
+        Result = (void*)MapResult;
+        CopyMemory(Result, Code, CodeSize);
+    }
+
+    return (Result);
+}
+
+local usize WriteStdOut(void* Data, usize Size, ...)
 {
     ssize Written = (ssize)LinuxSyscall(
         SyscallNumber_Write,
@@ -76,7 +107,7 @@ local usize WriteStdOut(void* Data, usize Size)
     return (Result);
 }
 
-local usize WriteStdErr(void* Data, usize Size)
+local usize WriteStdErr(void* Data, usize Size, ...)
 {
     ssize Written = (ssize)LinuxSyscall(
         SyscallNumber_Write,

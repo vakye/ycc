@@ -53,6 +53,21 @@ void* memset(void* DestInit, s32 Byte, usize Size)
     return (Dest);
 }
 
+void* memcpy(void* DestInit, void* SourceInit, usize Size)
+{
+    u8* Dest = (u8*)DestInit;
+    u8* Source = (u8*)SourceInit;
+
+    while (Size--)
+        *Dest++ = *Source++;
+
+    return (Dest);
+}
+
+local void ZeroMemory(void* Dest, usize Size)               { memset(Dest, 0, Size); }
+local void FillMemory(void* Dest, u8 Byte, usize Size)      { memset(Dest, Byte, Size); }
+local void CopyMemory(void* Dest, void* Source, usize Size) { memcpy(Dest, Source, Size); }
+
 typedef struct
 {
     char* Data;
