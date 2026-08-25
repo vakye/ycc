@@ -1,7 +1,9 @@
 
 #pragma once
 
+#include "shared.c"
 #include "print.c"
+#include "error.c"
 
 typedef ssize program_main(void);
 
@@ -41,10 +43,7 @@ local void Main(void)
     void* ExecutableMemory = MapExecutableMemory(Assembly, sizeof(Assembly));
 
     if (!ExecutableMemory)
-    {
-        Println(StdErr, Str("Failed to map executable memory"));
-        Exit(1);
-    }
+        Panic(Str("Failed to map executable memory"));
 
     program_main* ProgramMain = (program_main*)ExecutableMemory;
     ssize ProgramResult = ProgramMain();

@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include "shared.c"
+
 local void* MapExecutableMemory(void* Code, usize CodeSize);
 
 local usize WriteStdOut(void* Data, usize Size, ...);

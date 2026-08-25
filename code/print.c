@@ -1,6 +1,9 @@
 
 #pragma once
 
+#include "shared.c"
+#include "platform.c"
+
 typedef usize print_write(void* Data, usize Size, void* UserData);
 
 typedef struct
