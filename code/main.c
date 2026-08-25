@@ -4,6 +4,7 @@
 #include "shared.c"
 #include "print.c"
 #include "error.c"
+#include "lexer.c"
 
 typedef ssize program_main(void);
 
@@ -14,15 +15,17 @@ local void Main(void)
     #error Sorry, only x64 (x86_64) is implemented at the moment
 #endif
 
-    string Code = Str("1337");
+    string Code = Str("  1000  ");
 
-    u64 ReturnValue = 0;
+    Tokenize(Code);
 
-    for (usize Index = 0; Index < Code.Size; Index++)
-    {
-        ReturnValue *= 10;
-        ReturnValue += (Code.Data[Index] - '0');
-    }
+    if (GetTokenKind(0) != TokenKind_Integer)
+        ErrorAtToken(0, Str("Expected an integer"));
+
+    if (GetTokenKind(1) != TokenKind_EOF)
+        ErrorAtToken(1, Str("Stray characters after return value"));
+
+    u64 ReturnValue = GetTokenInteger(0);
 
     u8 Assembly[] =
     {

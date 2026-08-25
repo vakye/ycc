@@ -43,6 +43,12 @@ typedef unsigned long long u64;
 typedef s64 ssize;
 typedef u64 usize;
 
+typedef u8 b8;
+typedef u32 b32;
+
+#define true (1)
+#define false (0)
+
 void* memset(void* DestInit, s32 Byte, usize Size)
 {
     u8* Dest = (u8*)DestInit;
@@ -73,6 +79,8 @@ typedef struct
     char* Data;
     usize Size;
 } string;
+
+#define NilString           (string){0}
 
 #define Str(Literal)        (string){Literal, sizeof(Literal) - 1}
 #define StrData(Data, Size) (string){Data, Size}
