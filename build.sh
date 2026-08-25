@@ -18,7 +18,8 @@ CompileFlags=" \
     -Wall -Wextra -Wpedantic -Werror \
     -Wno-unused-parameter \
     -Wno-unused-variable \
-    -Wno-unused-function
+    -Wno-unused-function \
+    -Wno-missing-field-initializers \
     -o $OutputFile"
 
 LinkFlags=" \
