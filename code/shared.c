@@ -76,6 +76,8 @@
 #define GB(Amount) ((ssize)(Amount) << 30)
 #define TB(Amount) ((ssize)(Amount) << 40)
 
+#define AlignUp(Value, PowerOf2) (((Value) + (PowerOf2) - 1) & ~((PowerOf2) - 1))
+
 // ===================================================================================
 // NOTE(vak): Integer types
 // ===================================================================================
@@ -110,6 +112,8 @@ typedef u32 b32;
 
 #define true  (1)
 #define false (0)
+
+#define U32Max (u32)(0xFFFFFFFF)
 
 // ===================================================================================
 // NOTE(vak): Memory

@@ -52,9 +52,10 @@ void EntryPoint(void)
 typedef enum
 {
 #if Architecture_X64
-    SyscallNumber_Write     = (1),
-    SyscallNumber_MMap      = (9),
-    SyscallNumber_Exit      = (60),
+    SyscallNumber_Write         = (1),
+    SyscallNumber_MMap          = (9),
+    SyscallNumber_MProtect      = (10),
+    SyscallNumber_Exit          = (60),
 #else
 #   error Linux syscall numbers are not defined for this architecture
 #endif
@@ -103,8 +104,45 @@ local ssize LinuxSyscallWithInfo(linux_syscall_info Info)
 
 // NOTE(vak): Memory
 
+local void* ReserveMemory(usize Size)
+{
+    AlwaysAssert(Size > 0);
+
+    ssize MapResult = (ssize)LinuxSyscall(
+        SyscallNumber_MMap,
+        0,
+        Size,
+        PROT_NONE,
+        MAP_PRIVATE|MAP_ANONYMOUS,
+        -1,
+        0
+    );
+
+    void* Result = (void*)Maximum(0, MapResult);
+    return (Result);
+}
+
+local b32 CommitMemory(void* Memory, usize Size)
+{
+    AlwaysAssert(Memory);
+    AlwaysAssert(Size > 0);
+
+    ssize ProtectResult = (ssize)LinuxSyscall(
+        SyscallNumber_MProtect,
+        (usize)Memory,
+        Size,
+        PROT_READ|PROT_WRITE
+    );
+
+    b32 Result = (ProtectResult >= 0);
+    return (Result);
+}
+
 local void* MapExecutableMemory(void* Code, usize CodeSize)
 {
+    AlwaysAssert(Code);
+    AlwaysAssert(CodeSize > 0);
+
     ssize MapResult = (ssize)LinuxSyscall(
         SyscallNumber_MMap,
         0,
@@ -129,6 +167,8 @@ local void* MapExecutableMemory(void* Code, usize CodeSize)
 
 local usize LinuxWrite(s32 FileDescriptor, void* Data, usize Size)
 {
+    AlwaysAssert(Data);
+
     usize WrittenSoFar = 0;
     while (WrittenSoFar < Size)
     {

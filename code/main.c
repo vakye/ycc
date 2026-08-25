@@ -55,6 +55,7 @@ local void Main(void)
 
     string Code = Str("  1000 +200+30   +  7-  3  + 4-2 - 2");
 
+    SetupLexer();
     Tokenize(Code);
 
     // NOTE(vak): Current grammar

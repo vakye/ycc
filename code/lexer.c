@@ -13,6 +13,7 @@
 #include "shared.c"
 #include "print.c"
 #include "error.c"
+#include "memory.c"
 
 // ===================================================================================
 // NOTE(vak): Interface
@@ -42,11 +43,14 @@ typedef u32 token_id;
 // NOTE(vak): Example usage:
 //      string Code = Str("10 + 10");
 //
+//      SetupLexer();
 //      Tokenize(Code);
+//
 //      for (token_id TokenID = 0; TokenID < GetTokenCount(); TokenID++)
 //              ...
 //              ...
 
+local void          SetupLexer      (void);
 local void          Tokenize        (string Code);
 local u32           GetTokenCount   (void);
 
@@ -70,12 +74,24 @@ typedef struct
 
 typedef struct
 {
-    string Code;
-    u32 TokenCount;
-    token Tokens[4096];
+    string      Code;
+    arena_id    TokenArenaID;
 } lexer;
 
 local lexer Lexer = {0};
+
+#define DefaultTokensCommited (16384)
+#define DefaultTokensReserved (U32Max)
+
+local void SetupLexer(void)
+{
+    Lexer.TokenArenaID = MakeArena(
+        DefaultTokensCommited * sizeof(token),
+        DefaultTokensReserved * sizeof(token) 
+    );
+
+    AlwaysAssert(!IsNilArenaID(Lexer.TokenArenaID));
+}
 
 local b32 IsWhitespace(char Character)
 {
@@ -161,23 +177,22 @@ local token TokenizePunctuation(string Code, usize CurrentlyAt)
     return (Token);
 }
 
-local token_id AddToken(token_kind Kind, u32 From, u32 Size)
+local void AddToken(token_kind Kind, u32 From, u32 Size)
 {
-    AlwaysAssert(Lexer.TokenCount < ArrayCount(Lexer.Tokens));
+    AlwaysAssert(GetTokenCount() < U32Max);
 
-    token_id TokenID = Lexer.TokenCount++;
+    token* Token = PushArena(Lexer.TokenArenaID, token);
 
-    Lexer.Tokens[TokenID].Kind = Kind;
-    Lexer.Tokens[TokenID].From = From;
-    Lexer.Tokens[TokenID].Size = Size;
-
-    return (TokenID);
+    Token->Kind = Kind;
+    Token->From = From;
+    Token->Size = Size;
 }
 
 local void Tokenize(string Code)
 {
     Lexer.Code = Code;
-    Lexer.TokenCount = 0;
+
+    ResetArena(Lexer.TokenArenaID);
 
     usize Index = 0;
     while (Index < Code.Size)
@@ -208,16 +223,19 @@ local void Tokenize(string Code)
 
 local token* GetToken(token_id TokenID)
 {
-    AlwaysAssert(TokenID < Lexer.TokenCount);
+    AlwaysAssert(TokenID < GetTokenCount());
 
-    token* Token = Lexer.Tokens + TokenID;
+    token* Token = (token*)GetArenaBase(Lexer.TokenArenaID) + TokenID;
     return (Token);
 }
 
 local u32 GetTokenCount(void)
 {
-    u32 Result = Lexer.TokenCount;
-    return (Result);
+    usize Result = (GetArenaUsed(Lexer.TokenArenaID) / sizeof(token));
+
+    AlwaysAssert(Result <= U32Max);
+
+    return (u32)(Result);
 }
 
 local token_kind GetTokenKind(token_id TokenID)

@@ -15,12 +15,15 @@
 // NOTE(vak): Interface
 // ===================================================================================
 
-local void* MapExecutableMemory(void* Code, usize CodeSize);
+local void*     ReserveMemory       (usize Size);
+local b32       CommitMemory        (void* Memory, usize Size);
 
-local usize WriteStdOut(void* Data, usize Size, ...);
-local usize WriteStdErr(void* Data, usize Size, ...);
+local void*     MapExecutableMemory (void* Code, usize CodeSize);
 
-local void Exit(u8 ExitCode);
+local usize     WriteStdOut         (void* Data, usize Size, ...);
+local usize     WriteStdErr         (void* Data, usize Size, ...);
+
+local void      Exit                (u8 ExitCode);
 
 // ===================================================================================
 // NOTE(vak): Implementations are provided by the platform layer:
