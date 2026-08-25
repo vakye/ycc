@@ -1,5 +1,13 @@
 
 #include "shared.c"
+#include "platform.c"
+#include "main.c"
+
+void EntryPoint(void)
+{
+    Main();
+    Exit(0);
+}
 
 #define STDOUT_FILENO (1)
 #define STDERR_FILENO (2)
@@ -84,26 +92,5 @@ local usize WriteStdErr(void* Data, usize Size)
 local void Exit(u8 ExitCode)
 {
     LinuxSyscall(SyscallNumber_Exit, ExitCode);
-}
-
-void EntryPoint(void)
-{
-    char MessageForStdOut[] = "Hello, world from stdout!\n";
-    char MessageForStdErr[] = "Hello, world from stderr!\n";
-
-    WriteStdOut(MessageForStdOut, sizeof(MessageForStdOut) - 1);
-    WriteStdErr(MessageForStdErr, sizeof(MessageForStdErr) - 1);
-
-    Exit(0);
-}
-
-void* memset(void* DestInit, s32 Byte, usize Size)
-{
-    u8* Dest = (u8*)DestInit;
-
-    while (Size--)
-        *Dest++ = 0;
-
-    return (Dest);
 }
 

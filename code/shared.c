@@ -41,3 +41,13 @@ typedef unsigned long long u64;
 typedef s64 ssize;
 typedef u64 usize;
 
+void* memset(void* DestInit, s32 Byte, usize Size)
+{
+    u8* Dest = (u8*)DestInit;
+
+    while (Size--)
+        *Dest++ = 0;
+
+    return (Dest);
+}
+
