@@ -19,6 +19,9 @@ local void Main(void)
 
     Tokenize(Code);
 
+    if (GetTokenKind(0) == TokenKind_EOF)
+        ErrorAtToken(0, Str("Input string is empty"));
+
     if (GetTokenKind(0) != TokenKind_Integer)
         ErrorAtToken(0, Str("Expected an integer"));
 
