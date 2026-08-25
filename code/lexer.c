@@ -28,14 +28,13 @@ typedef enum
     TokenKind_Integer   = 1,
 
     // NOTE(vak): One-character punctuation token kinds are mapped
-    // directly to their correspondin ASCII codes. For example, if you
+    // directly to their corresponding ASCII codes. For example, if you
     // want to detect the plus token '+', then you can write
     //          if (GetTokenKind(...) == '+')
 } token_kind;
 
 typedef u32 token_id;
-
-#define MaxTokenID (U32Max)
+#define MaxTokenCount U32Max
 
 // NOTE(vak): Each Tokenize() call will completely reset the token buffer
 // before performing tokenization. Once tokenization is finished, the
@@ -83,7 +82,7 @@ typedef struct
 local lexer Lexer = {0};
 
 #define DefaultTokensCommited (16384)
-#define DefaultTokensReserved (MaxTokenID)
+#define DefaultTokensReserved (MaxTokenCount)
 
 local void SetupLexer(void)
 {
@@ -181,7 +180,7 @@ local token TokenizePunctuation(string Code, usize CurrentlyAt)
 
 local void AddToken(token_kind Kind, u32 From, u32 Size)
 {
-    AlwaysAssert(GetTokenCount() < MaxTokenID);
+    AlwaysAssert(GetTokenCount() < MaxTokenCount);
 
     token* Token = PushArena(Lexer.TokenArenaID, token);
 
@@ -233,11 +232,10 @@ local token* GetToken(token_id TokenID)
 
 local usize GetTokenCount(void)
 {
-    usize Result = (GetArenaUsed(Lexer.TokenArenaID) / sizeof(token));
+    usize Count = (GetArenaUsed(Lexer.TokenArenaID) / sizeof(token));
+    AlwaysAssert(Count <= MaxTokenCount);
 
-    AlwaysAssert(Result <= MaxTokenID);
-
-    return (Result);
+    return (Count);
 }
 
 local token_kind GetTokenKind(token_id TokenID)
