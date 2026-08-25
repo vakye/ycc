@@ -23,6 +23,9 @@
 
 #define local static
 
+#define Minimum(A, B) ((A) < (B) ? (A) : (B))
+#define Maximum(A, B) ((A) > (B) ? (A) : (B))
+
 typedef signed char s8;
 typedef signed short s16;
 typedef signed int s32;
@@ -36,9 +39,13 @@ typedef unsigned long long u64;
 typedef s64 ssize;
 typedef u64 usize;
 
+#define STDOUT_FILENO (1)
+#define STDERR_FILENO (2)
+
 typedef enum
 {
 #if Architecture_X64
+    SyscallNumber_Write     = (1),
     SyscallNumber_Exit      = (60),
 #else
 #   error Linux syscall numbers are not defined for this architecture
@@ -86,6 +93,32 @@ local ssize LinuxSyscallWithInfo(linux_syscall_info Info)
     return (Result);
 }
 
+local usize WriteStdOut(void* Data, usize Size)
+{
+    ssize Written = (ssize)LinuxSyscall(
+        SyscallNumber_Write,
+        STDOUT_FILENO,
+        (usize)Data,
+        Size
+    );
+
+    usize Result = Maximum(0, Written);
+    return (Result);
+}
+
+local usize WriteStdErr(void* Data, usize Size)
+{
+    ssize Written = (ssize)LinuxSyscall(
+        SyscallNumber_Write,
+        STDERR_FILENO,
+        (usize)Data,
+        Size
+    );
+
+    usize Result = Maximum(0, Written);
+    return (Result);
+}
+
 local void Exit(u8 ExitCode)
 {
     LinuxSyscall(SyscallNumber_Exit, ExitCode);
@@ -93,6 +126,12 @@ local void Exit(u8 ExitCode)
 
 void EntryPoint(void)
 {
+    char MessageForStdOut[] = "Hello, world from stdout!\n";
+    char MessageForStdErr[] = "Hello, world from stderr!\n";
+
+    WriteStdOut(MessageForStdOut, sizeof(MessageForStdOut) - 1);
+    WriteStdErr(MessageForStdErr, sizeof(MessageForStdErr) - 1);
+
     Exit(0);
 }
 
