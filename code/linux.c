@@ -1,4 +1,26 @@
 
+#if defined(_M_X64) || defined(_M_AMD64) || defined(__amd64__) || defined(__amd64) || defined(__x86_64__) || defined(__x86_64)
+#   define Architecture_X64 (1)
+#elif defined(__aarch64__) || defined(_M_ARM64)
+#   define Architecture_ARM64 (1)
+#elif defined(__riscv) && (__riscv_xlen == 64)
+#   define Architecture_RISCV64 (1)
+#else
+#   error Unknown architecture
+#endif
+
+#if !defined(Architecture_X64)
+#   define Architecture_X64 (0)
+#endif
+
+#if !defined(Architecture_ARM64)
+#   define Architecture_ARM64 (0)
+#endif
+
+#if !defined(Architecture_RISCV64)
+#   define Architecture_RISCV64 (0)
+#endif
+
 #define local static
 
 typedef signed char s8;
@@ -16,7 +38,11 @@ typedef u64 usize;
 
 typedef enum
 {
+#if Architecture_X64
     SyscallNumber_Exit      = (60),
+#else
+#   error Linux syscall numbers are not defined for this architecture
+#endif
 } syscall_number;
 
 typedef struct
@@ -36,6 +62,7 @@ local ssize LinuxSyscallWithInfo(linux_syscall_info Info)
 {
     ssize Result = 0;
 
+#if Architecture_X64
     register usize R10 __asm__("r10") = Info.Arg3;
     register usize R8  __asm__("r8")  = Info.Arg4;
     register usize R9  __asm__("r9")  = Info.Arg5;
@@ -52,6 +79,9 @@ local ssize LinuxSyscallWithInfo(linux_syscall_info Info)
         "r"(R9) :
         "memory", "rcx", "r11"
     );
+#else
+#   error Linux syscall is not implemented for this architecture
+#endif
 
     return (Result);
 }
@@ -63,6 +93,16 @@ local void Exit(u8 ExitCode)
 
 void EntryPoint(void)
 {
-    __asm__ volatile ("syscall" :: "a"(60), "D"(0));
+    Exit(0);
+}
+
+void* memset(void* DestInit, s32 Byte, usize Size)
+{
+    u8* Dest = (u8*)DestInit;
+
+    while (Size--)
+        *Dest++ = 0;
+
+    return (Dest);
 }
 
