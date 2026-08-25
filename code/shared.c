@@ -25,6 +25,8 @@
 
 #define local static
 
+#define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
+
 #define Minimum(A, B) ((A) < (B) ? (A) : (B))
 #define Maximum(A, B) ((A) > (B) ? (A) : (B))
 
@@ -50,4 +52,13 @@ void* memset(void* DestInit, s32 Byte, usize Size)
 
     return (Dest);
 }
+
+typedef struct
+{
+    char* Data;
+    usize Size;
+} string;
+
+#define Str(Literal)        (string){Literal, sizeof(Literal) - 1}
+#define StrData(Data, Size) (string){Data, Size}
 

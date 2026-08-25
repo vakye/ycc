@@ -1,12 +1,16 @@
 
 #pragma once
 
+#include "print.c"
+
 local void Main(void)
 {
-    char MessageForStdOut[] = "Hello, world from stdout!\n";
-    char MessageForStdErr[] = "Hello, world from stderr!\n";
+    Println(Str("Hello, world!"));
 
-    WriteStdOut(MessageForStdOut, sizeof(MessageForStdOut) - 1);
-    WriteStdErr(MessageForStdErr, sizeof(MessageForStdErr) - 1);
+    Println(Str("Integer printing:"));
+    Print(Str("    ")); PrintUSize(123456789); PrintNewLine();
+    Print(Str("    ")); PrintUSize(1337); PrintNewLine();
+    Print(Str("    ")); PrintSSize(-1234); PrintNewLine();
+    Print(Str("    ")); PrintSSize(10000); PrintNewLine();
 }
 
