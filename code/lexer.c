@@ -34,18 +34,25 @@ typedef enum
 
 typedef u32 token_id;
 
-// NOTE(vak): Each Tokenize() call will completely reset the token buffer.
-// Furthermore, an EOF token (Token.Kind = TokenKind_EOF) will always be
-// added at the end of the buffer. Thus, GetTokenCount() will always return
-// a number equal to or larger than 1 (meaning that it includes the EOF
-// token).
+// NOTE(vak): Each Tokenize() call will completely reset the token buffer
+// before performing tokenization. Once tokenization is finished, the
+// first token will always reside at TokenID = 0, and the user can
+// increment their own TokenID until hitting an EOF token.
+
+// NOTE(vak): Example usage:
+//      string Code = Str("10 + 10");
+//
+//      Tokenize(Code);
+//      for (token_id TokenID = 0; TokenID < GetTokenCount(); TokenID++)
+//              ...
+//              ...
 
 local void          Tokenize        (string Code);
 local u32           GetTokenCount   (void);
 
 local token_kind    GetTokenKind    (token_id TokenID);
 local string        GetTokenString  (token_id TokenID);
-local usize         GetTokenInteger (token_id TokenID);
+local usize         GetTokenInteger (token_id TokenID); // NOTE(vak): Only use with TokenKind_Integer
 
 local void          ErrorAtLocation (u32 From, string Message);
 local void          ErrorAtToken    (token_id TokenID, string Message);
@@ -156,8 +163,7 @@ local token TokenizePunctuation(string Code, usize CurrentlyAt)
 
 local token_id AddToken(token_kind Kind, u32 From, u32 Size)
 {
-    if (Lexer.TokenCount == ArrayCount(Lexer.Tokens))
-        Panic(Str("Token array ran out of space"));
+    AlwaysAssert(Lexer.TokenCount < ArrayCount(Lexer.Tokens));
 
     token_id TokenID = Lexer.TokenCount++;
 
@@ -178,7 +184,7 @@ local void Tokenize(string Code)
     {
         Index = SkipWhitespace(Code, Index);
 
-        if (Index == Code.Size)
+        if (Index >= Code.Size)
             break;
 
         token Token = {0};
@@ -195,8 +201,7 @@ local void Tokenize(string Code)
         AddToken(Token.Kind, Token.From, Token.Size);
     }
 
-    if (Index > Code.Size)
-        Panic(Str("Tokenizer 'Index' is larger than 'Code.Size'."));
+    AlwaysAssert(Index == Code.Size);
 
     AddToken(TokenKind_EOF, Index, 0);
 }
