@@ -1,22 +1,44 @@
 
+// ===================================================================================
+// NOTE(vak): Lexer: responsible for converting a code string into a sequence of
+// tokens.
+// ===================================================================================
+
 #pragma once
+
+// ===================================================================================
+// NOTE(vak): Dependencies
+// ===================================================================================
 
 #include "shared.c"
 #include "print.c"
 #include "error.c"
 
+// ===================================================================================
 // NOTE(vak): Interface
+// ===================================================================================
 
 typedef enum
 {
-    TokenKind_EOF = 0,
-    TokenKind_Integer = 1,
+    // NOTE(vak): Control codes, alphabetical and digit ASCII codes are free
+    // for usage in representing other token kinds (excluding EOF).
 
-    // NOTE(vak): Punctuation token kinds will be mapped
-    // directly to their ASCII codes
+    TokenKind_EOF       = 0,
+    TokenKind_Integer   = 1,
+
+    // NOTE(vak): One-character punctuation token kinds are mapped
+    // directly to their correspondin ASCII codes. For example, if you
+    // want to detect the plus token '+', then you can write
+    //          if (GetTokenKind(...) == '+')
 } token_kind;
 
 typedef u32 token_id;
+
+// NOTE(vak): Each Tokenize() call will completely reset the token buffer.
+// Furthermore, an EOF token (Token.Kind = TokenKind_EOF) will always be
+// added at the end of the buffer. Thus, GetTokenCount() will always return
+// a number equal to or larger than 1 (meaning that it includes the EOF
+// token).
 
 local void          Tokenize        (string Code);
 local u32           GetTokenCount   (void);
@@ -28,7 +50,9 @@ local usize         GetTokenInteger (token_id TokenID);
 local void          ErrorAtLocation (u32 From, string Message);
 local void          ErrorAtToken    (token_id TokenID, string Message);
 
+// ===================================================================================
 // NOTE(vak): Implementation
+// ===================================================================================
 
 typedef struct
 {
@@ -147,6 +171,7 @@ local token_id AddToken(token_kind Kind, u32 From, u32 Size)
 local void Tokenize(string Code)
 {
     Lexer.Code = Code;
+    Lexer.TokenCount = 0;
 
     usize Index = 0;
     while (Index < Code.Size)

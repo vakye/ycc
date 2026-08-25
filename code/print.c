@@ -1,8 +1,28 @@
 
+// ===================================================================================
+// NOTE(vak): Printing functions for characters, strings, integers, ...
+// ===================================================================================
+
 #pragma once
+
+// ===================================================================================
+// NOTE(vak): Dependencies
+// ===================================================================================
 
 #include "shared.c"
 #include "platform.c"
+
+// ===================================================================================
+// NOTE(vak): Interface
+//
+// All print functions must receive a 'print_out' struct so that they know where to
+// write to. Two standard 'print_out' structs are provided that are 'StdOut' and
+// 'StdErr'.
+//
+// Furthermore, all print functions will return the number of bytes written. A print
+// function may write less bytes than requested.
+//
+// ===================================================================================
 
 typedef usize print_write(void* Data, usize Size, void* UserData);
 
@@ -14,6 +34,18 @@ typedef struct
 
 #define StdOut (print_out){(print_write*)&WriteStdOut, 0}
 #define StdErr (print_out){(print_write*)&WriteStdErr, 0}
+
+local usize PrintWrite      (print_out Out, void* Data, usize Size);
+local usize PrintCharacter  (print_out Out, char Character);
+local usize PrintNewLine    (print_out Out);
+local usize Print           (print_out Out, string Message);
+local usize Println         (print_out Out, string Message);
+local usize PrintUSize      (print_out Out, usize Value);
+local usize PrintSSize      (print_out Out, ssize Value);
+
+// ===================================================================================
+// NOTE(vak): Implementation
+// ===================================================================================
 
 local usize PrintWrite(print_out Out, void* Data, usize Size)
 {

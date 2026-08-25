@@ -1,7 +1,20 @@
 
+// ===================================================================================
+// NOTE(vak): Platform file for Linux. Contains the EntryPoint and is responsible
+// for calling Main() along with implementing platform-related functions.
+// ===================================================================================
+
+// ===================================================================================
+// NOTE(vak): Dependencies
+// ===================================================================================
+
 #include "shared.c"
 #include "platform.c"
 #include "main.c"
+
+// ===================================================================================
+// NOTE(vak): Entry Point
+// ===================================================================================
 
 void EntryPoint(void)
 {
@@ -9,18 +22,32 @@ void EntryPoint(void)
     Exit(0);
 }
 
+// ===================================================================================
+// NOTE(vak): Linux implementation of platform.c
+// ===================================================================================
+
+// NOTE(vak): Standard file descriptor numbers
+
 #define STDOUT_FILENO (1)
 #define STDERR_FILENO (2)
+
+// NOTE(vak): Protection flags used by mmap() and mprotect() syscalls
 
 #define PROT_NONE   (0x00)
 #define PROT_READ   (0x01)
 #define PROT_WRITE  (0x02)
 #define PROT_EXEC   (0x04)
 
+// NOTE(vak): Memory mapping flags used by mmap()
+
 #define MAP_PRIVATE     (0x02)
 #define MAP_ANONYMOUS   (0x20)
 
+// NOTE(vak): Error codes
+
 #define EINTR   (4)
+
+// NOTE(vak): System call
 
 typedef enum
 {
@@ -74,6 +101,8 @@ local ssize LinuxSyscallWithInfo(linux_syscall_info Info)
     return (Result);
 }
 
+// NOTE(vak): Memory
+
 local void* MapExecutableMemory(void* Code, usize CodeSize)
 {
     ssize MapResult = (ssize)LinuxSyscall(
@@ -95,6 +124,8 @@ local void* MapExecutableMemory(void* Code, usize CodeSize)
 
     return (Result);
 }
+
+// NOTE(vak): Input/Output
 
 local usize LinuxWrite(s32 FileDescriptor, void* Data, usize Size)
 {
@@ -138,6 +169,8 @@ local usize WriteStdErr(void* Data, usize Size, ...)
     usize Written = LinuxWrite(STDERR_FILENO, Data, Size);
     return (Written);
 }
+
+// NOTE(vak): Process control
 
 local void Exit(u8 ExitCode)
 {

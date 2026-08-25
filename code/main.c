@@ -1,12 +1,22 @@
 
+// ===================================================================================
+// NOTE(vak): Main program logic. Contains the Main() function.
+// ===================================================================================
+
 #pragma once
+
+// ===================================================================================
+// NOTE(vak): Dependencies
+// ===================================================================================
 
 #include "shared.c"
 #include "print.c"
 #include "error.c"
 #include "lexer.c"
 
-typedef ssize program_main(void);
+// ===================================================================================
+// NOTE(vak): Machine code generation helpers
+// ===================================================================================
 
 local u8    MachineCode[KB(64)] = {0};
 local usize MachineCodeSize     = 0;
@@ -29,6 +39,12 @@ local void Emit40(u64 Value) { EmitBytes(&Value, 5); }
 local void Emit48(u64 Value) { EmitBytes(&Value, 6); }
 local void Emit56(u64 Value) { EmitBytes(&Value, 7); }
 local void Emit64(u64 Value) { EmitBytes(&Value, 8); }
+
+// ===================================================================================
+// NOTE(vak): Main function
+// ===================================================================================
+
+typedef ssize program_main(void);
 
 local void Main(void)
 {
