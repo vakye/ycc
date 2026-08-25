@@ -35,6 +35,8 @@ typedef enum
 
 typedef u32 token_id;
 
+#define MaxTokenID (U32Max)
+
 // NOTE(vak): Each Tokenize() call will completely reset the token buffer
 // before performing tokenization. Once tokenization is finished, the
 // first token will always reside at TokenID = 0, and the user can
@@ -52,13 +54,13 @@ typedef u32 token_id;
 
 local void          SetupLexer      (void);
 local void          Tokenize        (string Code);
-local u32           GetTokenCount   (void);
+local usize         GetTokenCount   (void);
 
 local token_kind    GetTokenKind    (token_id TokenID);
 local string        GetTokenString  (token_id TokenID);
 local usize         GetTokenInteger (token_id TokenID); // NOTE(vak): Only use with TokenKind_Integer
 
-local void          ErrorAtLocation (u32 From, string Message);
+local void          ErrorAtLocation (usize From, string Message);
 local void          ErrorAtToken    (token_id TokenID, string Message);
 
 // ===================================================================================
@@ -81,7 +83,7 @@ typedef struct
 local lexer Lexer = {0};
 
 #define DefaultTokensCommited (16384)
-#define DefaultTokensReserved (U32Max)
+#define DefaultTokensReserved (MaxTokenID)
 
 local void SetupLexer(void)
 {
@@ -179,7 +181,7 @@ local token TokenizePunctuation(string Code, usize CurrentlyAt)
 
 local void AddToken(token_kind Kind, u32 From, u32 Size)
 {
-    AlwaysAssert(GetTokenCount() < U32Max);
+    AlwaysAssert(GetTokenCount() < MaxTokenID);
 
     token* Token = PushArena(Lexer.TokenArenaID, token);
 
@@ -229,13 +231,13 @@ local token* GetToken(token_id TokenID)
     return (Token);
 }
 
-local u32 GetTokenCount(void)
+local usize GetTokenCount(void)
 {
     usize Result = (GetArenaUsed(Lexer.TokenArenaID) / sizeof(token));
 
-    AlwaysAssert(Result <= U32Max);
+    AlwaysAssert(Result <= MaxTokenID);
 
-    return (u32)(Result);
+    return (Result);
 }
 
 local token_kind GetTokenKind(token_id TokenID)
@@ -271,7 +273,7 @@ local usize GetTokenInteger(token_id TokenID)
     return (Result);
 }
 
-local void ErrorAtLocation(u32 From, string Message)
+local void ErrorAtLocation(usize From, string Message)
 {
     usize Padding = From;
 
