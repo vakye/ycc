@@ -41,9 +41,6 @@ local void Main(void)
 
     Tokenize(Code);
 
-    if (GetTokenKind(0) == TokenKind_EOF)
-        ErrorAtToken(0, Str("Input string is empty"));
-
     // NOTE(vak): Current grammar
     //      Integer    = '0'..'9'
     //      Sum        = Integer + (('+' | '-')? + Sum)
@@ -65,6 +62,9 @@ local void Main(void)
 
     // NOTE(vak): First integer goes into RAX
     {
+        if (GetTokenKind(TokenID) == TokenKind_EOF)
+            ErrorAtToken(TokenID, Str("Input string is empty"));
+
         if (GetTokenKind(TokenID) != TokenKind_Integer)
             ErrorAtToken(0, Str("Expected an integer"));
 
@@ -92,7 +92,7 @@ local void Main(void)
             TokenID++;
 
             if (GetTokenKind(TokenID) != TokenKind_Integer)
-                ErrorAtToken(0, Str("Expected an integer"));
+                ErrorAtToken(TokenID, Str("Expected an integer"));
 
             // NOTE(vak):
             // 48 b9 (Imm64)    mov rcx, Imm64
@@ -109,7 +109,7 @@ local void Main(void)
             TokenID++;
 
             if (GetTokenKind(TokenID) != TokenKind_Integer)
-                ErrorAtToken(0, Str("Expected an integer"));
+                ErrorAtToken(TokenID, Str("Expected an integer"));
 
             // NOTE(vak):
             // 48 b9 (Imm64)    mov rcx, Imm64
