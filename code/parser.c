@@ -59,33 +59,19 @@ typedef struct
     binary_node Binary;
 } node_data;
 
-local void      SetupParser     (void);
-local node_id   Parse           (void);
-local node_id   ParseExpression (void);
-local node_id   ParseSum        (void);
-local node_id   ParsePrimary    (void);
+local void      SetupParser         (void);
+local void      ResetParser         (void);
+local node_id   Parse               (token_array Tokens);
 
-local node_kind GetNodeKind     (node_id NodeID);
-local token_id  GetNodeTokenID  (node_id NodeID);
-local node_data GetNodeData     (node_id NodeID);
+local node_kind GetNodeKind         (node_id NodeID);
+local token_id  GetNodeTokenID      (node_id NodeID);
+local node_data GetNodeData         (node_id NodeID);
 
-// ===================================================================================
-// NOTE(vak): Internal interface
-// ===================================================================================
-
-local token_id  ParserCurrent       (void);
-local void      ParserNext          (void);
-local b32       ParserMatch         (token_kind TokenKind);
-local b32       ParserNextIfMatch   (token_kind TokenKind);
-local void      ParserExpect        (token_kind TokenKind, string ErrorMessage);
-local void      ParserExpectAndSkip (token_kind TokenKind, string ErrorMessage);
-
-local node_id   MakeNode            (node_kind Kind, token_id TokenID);
-local node_id   MakeIntegerNode     (token_id TokenID);
-local node_id   MakeBinaryNode      (node_kind Kind, token_id TokenID, node_id Left, node_id Right);
+local string    GetNodeKindString   (node_kind Kind);
+local void      PrintNode           (node_id NodeID);
 
 // ===================================================================================
-// NOTE(vak): Implementation
+// NOTE(vak): Internal Interface
 // ===================================================================================
 
 typedef struct
@@ -97,9 +83,32 @@ typedef struct
 
 typedef struct
 {
-    arena_id NodeArenaID;
-    token_id TokenID;
+    arena_id    NodeArenaID;
+    token_array CurrentTokens;
+    u32         TokenIndex;
 } parser;
+
+local node_id   ParseExpression     (void);
+local node_id   ParseSum            (void);
+local node_id   ParsePrimary        (void);
+
+local token_id  ParserCurrent       (void);
+local void      ParserNext          (void);
+local b32       ParserMatch         (token_kind TokenKind);
+local b32       ParserNextIfMatch   (token_kind TokenKind);
+local void      ParserExpect        (token_kind TokenKind, string ErrorMessage);
+local void      ParserExpectAndSkip (token_kind TokenKind, string ErrorMessage);
+
+local usize     GetNodeCount        (void);
+local node*     GetNode             (node_id NodeID);
+
+local node_id   MakeNode            (node_kind Kind, token_id TokenID);
+local node_id   MakeIntegerNode     (token_id TokenID);
+local node_id   MakeBinaryNode      (node_kind Kind, token_id TokenID, node_id Left, node_id Right);
+
+// ===================================================================================
+// NOTE(vak): Implementation
+// ===================================================================================
 
 local parser Parser = {0};
 
@@ -116,11 +125,104 @@ local void SetupParser(void)
     AlwaysAssert(!IsNilArenaID(Parser.NodeArenaID));
 }
 
-local node_id Parse(void)
+local void ResetParser(void)
 {
+    ResetArena(Parser.NodeArenaID);
+}
+
+local node_id Parse(token_array Tokens)
+{
+    Parser.CurrentTokens   = Tokens;
+    Parser.TokenIndex      = 0;
+
     node_id NodeID = ParseExpression();
+
+    Parser.CurrentTokens = NilTokenArray;
+    Parser.TokenIndex    = 0;
+
     return (NodeID);
 }
+
+local node_kind GetNodeKind(node_id NodeID)
+{
+    node* Node = GetNode(NodeID);
+    node_kind Result = Node->Kind;
+    return (Result);
+}
+
+local token_id GetNodeTokenID(node_id NodeID)
+{
+    node* Node = GetNode(NodeID);
+    token_id Result = Node->TokenID;
+    return (Result);
+}
+
+local node_data GetNodeData(node_id NodeID)
+{
+    node* Node = GetNode(NodeID);
+    node_data Result = Node->Data;
+    return (Result);
+}
+
+local string GetNodeKindString(node_kind Kind)
+{
+    persist string KindStrings[NodeKind_COUNT] =
+    {
+        [NodeKind_Nil]          = StaticStr("Nil"),
+        [NodeKind_Integer]      = StaticStr("Integer"),
+        [NodeKind_Add]          = StaticStr("Add"),
+        [NodeKind_Sub]          = StaticStr("Sub"),
+    };
+
+    AlwaysAssert(Kind < NodeKind_COUNT);
+
+    string Result = KindStrings[Kind];
+    return (Result);
+}
+
+local void PrintNode(node_id NodeID)
+{
+    if (IsNilNodeID(NodeID))
+        return;
+
+    persist usize Depth = 0;
+
+    Depth++;
+
+    node_kind Kind = GetNodeKind(NodeID);
+    node_data Data = GetNodeData(NodeID);
+
+    for (usize Index = 0; Index < Depth; Index++)
+        Print(StdOut, Str("    "));
+
+    Print(StdOut, GetNodeKindString(Kind));
+    Print(StdOut, Str(": "));
+
+    switch (Kind)
+    {
+        default: {} break;
+
+        case NodeKind_Integer:
+        {
+            PrintUSize(StdOut, Data.Integer.Value);
+            PrintNewLine(StdOut);
+        } break;
+
+        case NodeKind_Add:
+        case NodeKind_Sub:
+        {
+            PrintNewLine(StdOut);
+            PrintNode(Data.Binary.Left);
+            PrintNode(Data.Binary.Right);
+        } break;
+    }
+
+    Depth--;
+}
+
+// ===================================================================================
+// NOTE(vak): Internal Implementation
+// ===================================================================================
 
 local node_id ParseExpression(void)
 {
@@ -169,63 +271,28 @@ local node_id ParsePrimary(void)
     }
     else
     {
-        ErrorAtToken(TokenID, Str("Syntax error"));
+        ErrorAtToken(Parser.CurrentTokens, Parser.TokenIndex, Str("Syntax error"));
     }
 
     return (NodeID);
 }
 
-local usize GetNodeCount(void)
-{
-    usize Result = GetArenaUsed(Parser.NodeArenaID) / sizeof(node);
-    return (Result);
-}
-
-local node* GetNode(node_id NodeID)
-{
-    AlwaysAssert(NodeID > 0);
-    AlwaysAssert(NodeID <= GetNodeCount());
-
-    node* Node = (node*)GetArenaBase(Parser.NodeArenaID) + (NodeID - 1);
-    return (Node);
-}
-
-local node_kind GetNodeKind(node_id NodeID)
-{
-    node* Node = GetNode(NodeID);
-    node_kind Result = Node->Kind;
-    return (Result);
-}
-
-local token_id GetNodeTokenID(node_id NodeID)
-{
-    node* Node = GetNode(NodeID);
-    token_id Result = Node->TokenID;
-    return (Result);
-}
-
-local node_data GetNodeData(node_id NodeID)
-{
-    node* Node = GetNode(NodeID);
-    node_data Result = Node->Data;
-    return (Result);
-}
-
 local token_id ParserCurrent(void)
 {
-    token_id TokenID = Parser.TokenID;
+    token_id TokenID = TokenIDFromIndex(Parser.CurrentTokens, Parser.TokenIndex);
     return (TokenID);
 }
 
 local void ParserNext(void)
 {
-    if (Parser.TokenID < GetTokenCount())
-        Parser.TokenID++;
+    if (Parser.TokenIndex < Parser.CurrentTokens.Count)
+        Parser.TokenIndex++;
 }
 
 local b32 ParserMatch(token_kind TokenKind)
 {
-    b32 Result = (GetTokenKind(ParserCurrent()) == TokenKind);
+    token_kind CurrentKind = GetTokenKind(Parser.CurrentTokens, Parser.TokenIndex);
+    b32 Result = (CurrentKind == TokenKind);
     return (Result);
 }
 
@@ -241,13 +308,28 @@ local b32 ParserNextIfMatch(token_kind TokenKind)
 local void ParserExpect(token_kind TokenKind, string ErrorMessage)
 {
     if (!ParserMatch(TokenKind))
-        ErrorAtToken(ParserCurrent(), ErrorMessage);
+        ErrorAtToken(Parser.CurrentTokens, Parser.TokenIndex, ErrorMessage);
 }
 
 local void ParserExpectAndSkip(token_kind TokenKind, string ErrorMessage)
 {
     if (!ParserNextIfMatch(TokenKind))
-        ErrorAtToken(ParserCurrent(), ErrorMessage);
+        ErrorAtToken(Parser.CurrentTokens, Parser.TokenIndex, ErrorMessage);
+}
+
+local usize GetNodeCount(void)
+{
+    usize Result = GetArenaUsed(Parser.NodeArenaID) / sizeof(node);
+    return (Result);
+}
+
+local node* GetNode(node_id NodeID)
+{
+    AlwaysAssert(NodeID > 0);
+    AlwaysAssert(NodeID <= GetNodeCount());
+
+    node* Node = (node*)GetArenaBase(Parser.NodeArenaID) + (NodeID - 1);
+    return (Node);
 }
 
 local node_id MakeNode(node_kind Kind, token_id TokenID)
@@ -271,7 +353,9 @@ local node_id MakeIntegerNode(token_id TokenID)
     node_id NodeID = MakeNode(NodeKind_Integer, TokenID);
     node* Node = GetNode(NodeID);
 
-    Node->Data.Integer.Value = GetTokenInteger(TokenID);
+    u32 Index = IndexFromTokenID(Parser.CurrentTokens, TokenID);
+
+    Node->Data.Integer.Value = GetTokenInteger(Parser.CurrentTokens, Index);
 
     return (NodeID);
 }

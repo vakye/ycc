@@ -33,8 +33,6 @@ typedef enum
     //          if (GetTokenKind(...) == '+')
 } token_kind;
 
-// NOTE(vak): token_id starts from 0, and there is no nil token ID.
-
 typedef u32 token_id;
 #define MaxTokenCount U32Max
 
@@ -47,25 +45,40 @@ typedef u32 token_id;
 //      string Code = Str("10 + 10");
 //
 //      SetupLexer();
-//      Tokenize(Code);
+//      token_array Tokens = Tokenize(Code);
 //
-//      for (token_id TokenID = 0; TokenID < GetTokenCount(); TokenID++)
+//      for (u32 Index = 0; Index < Tokens.Count; Index++)
+//      {
+//              token_id TokenID = TokenIDFromIndex(Tokens, Index);
 //              ...
 //              ...
+//      }
 
-local void          SetupLexer      (void);
-local void          Tokenize        (string Code);
-local usize         GetTokenCount   (void);
+typedef struct
+{
+    string      Code;
+    token_id    FirstID;
+    u32         Count;
+} token_array;
 
-local token_kind    GetTokenKind    (token_id TokenID);
-local string        GetTokenString  (token_id TokenID);
-local usize         GetTokenInteger (token_id TokenID); // NOTE(vak): Only use with TokenKind_Integer
+#define NilTokenArray (token_array){0}
 
-local void          ErrorAtLocation (usize From, string Message);
-local void          ErrorAtToken    (token_id TokenID, string Message);
+local void          SetupLexer          (void);
+local void          ResetLexer          (void);
+local token_array   Tokenize            (string Code);
+
+local u32           IndexFromTokenID    (token_array Tokens, token_id TokenID);
+local token_id      TokenIDFromIndex    (token_array Tokens, u32 Index);
+
+local token_kind    GetTokenKind        (token_array Tokens, u32 Index);
+local string        GetTokenString      (token_array Tokens, u32 Index);
+local usize         GetTokenInteger     (token_array Tokens, u32 Index); // NOTE(vak): Only use with TokenKind_Integer
+
+local void          ErrorAtToken        (token_array Tokens, u32 Index, string Message);
+local void          PrintTokens         (token_array Tokens);
 
 // ===================================================================================
-// NOTE(vak): Implementation
+// NOTE(vak): Internal Interface
 // ===================================================================================
 
 typedef struct
@@ -77,9 +90,26 @@ typedef struct
 
 typedef struct
 {
-    string      Code;
     arena_id    TokenArenaID;
 } lexer;
+
+local b32           IsWhitespace        (char Character);
+local b32           IsDigit             (char Character);
+local b32           IsPunctuation       (char Character);
+
+local usize         SkipWhitespace      (string Code, usize CurrentlyAt);
+local token         TokenizeDigit       (string Code, usize CurrentlyAt);
+local token         TokenizePunctuation (string Code, usize CurrentlyAt);
+
+local token*        GetToken            (token_id TokenID);
+local usize         GetTokenCount       (void);
+local void          PushToken           (token_kind Kind, u32 From, u32 Size);
+
+local void          ErrorAtLocation     (string Code, usize From, string Message);
+
+// ===================================================================================
+// NOTE(vak): Implementation
+// ===================================================================================
 
 local lexer Lexer = {0};
 
@@ -95,6 +125,125 @@ local void SetupLexer(void)
 
     AlwaysAssert(!IsNilArenaID(Lexer.TokenArenaID));
 }
+
+local void ResetLexer(void)
+{
+    ResetArena(Lexer.TokenArenaID);
+}
+
+local token_array Tokenize(string Code)
+{
+    token_array Result =
+    {
+        .Code       = Code,
+        .FirstID    = GetTokenCount(),
+        .Count      = 0,
+    };
+
+    usize Index = 0;
+    while (Index < Code.Size)
+    {
+        Index = SkipWhitespace(Code, Index);
+
+        if (Index >= Code.Size)
+            break;
+
+        token Token = {0};
+
+        char Character = Code.Data[Index];
+
+        if (0) {}
+        else if (IsDigit(Character))        Token = TokenizeDigit(Code, Index);
+        else if (IsPunctuation(Character))  Token = TokenizePunctuation(Code, Index);
+        else ErrorAtLocation(Code, Index, Str("Unknown character in input"));
+
+        Index += Token.Size;
+
+        PushToken(Token.Kind, Token.From, Token.Size);
+    }
+
+    AlwaysAssert(Index == Code.Size);
+
+    PushToken(TokenKind_EOF, Index, 0);
+
+    Result.Count = (u32)(GetTokenCount() - Result.FirstID);
+
+    return (Result);
+}
+
+local u32 IndexFromTokenID(token_array Tokens, token_id TokenID)
+{
+    AlwaysAssert(TokenID >= Tokens.FirstID);
+    AlwaysAssert(TokenID <  Tokens.FirstID + Tokens.Count);
+
+    u32 Index = TokenID - Tokens.FirstID;
+    return (Index);
+}
+
+local token_id TokenIDFromIndex(token_array Tokens, u32 Index)
+{
+    AlwaysAssert(Index < Tokens.Count);
+    token_id TokenID = Tokens.FirstID + Index;
+    return (TokenID);
+}
+
+local token_kind GetTokenKind(token_array Tokens, u32 Index)
+{
+    token* Token = GetToken(TokenIDFromIndex(Tokens, Index));
+    token_kind Kind = Token->Kind;
+    return (Kind);
+}
+
+local string GetTokenString(token_array Tokens, u32 Index)
+{
+    token* Token = GetToken(TokenIDFromIndex(Tokens, Index));
+
+    AlwaysAssert(Token->From + Token->Size <= Tokens.Code.Size);
+
+    string String = StrData(Tokens.Code.Data + Token->From, Token->Size);
+    return (String);
+}
+
+local usize GetTokenInteger(token_array Tokens, u32 Index)
+{
+    AlwaysAssert(Index < Tokens.Count);
+    AlwaysAssert(GetTokenKind(Tokens, Index) == TokenKind_Integer);
+
+    usize Result = 0;
+
+    string Digits = GetTokenString(Tokens, Index);
+    for (usize At = 0; At < Digits.Size; At++)
+    {
+        Result *= 10;
+        Result += (Digits.Data[At] - '0');
+    }
+
+    return (Result);
+}
+
+local void ErrorAtToken(token_array Tokens, u32 Index, string Message)
+{
+    AlwaysAssert(Index < Tokens.Count);
+
+    token* Token = GetToken(TokenIDFromIndex(Tokens, Index));
+
+    ErrorAtLocation(Tokens.Code, Token->From, Message);
+}
+
+local void PrintTokens(token_array Tokens)
+{
+    for (u32 Index = 0; Index < Tokens.Count; Index++)
+    {
+        Print(StdOut, Str("    '"));
+        Print(StdOut, GetTokenString(Tokens, Index));
+        Print(StdOut, Str("'"));
+        PrintNewLine(StdOut);
+    }
+}
+
+// ===================================================================================
+// NOTE(vak): Internal Implementation
+// ===================================================================================
 
 local b32 IsWhitespace(char Character)
 {
@@ -180,50 +329,6 @@ local token TokenizePunctuation(string Code, usize CurrentlyAt)
     return (Token);
 }
 
-local void AddToken(token_kind Kind, u32 From, u32 Size)
-{
-    AlwaysAssert(GetTokenCount() < MaxTokenCount);
-
-    token* Token = PushArena(Lexer.TokenArenaID, token);
-
-    Token->Kind = Kind;
-    Token->From = From;
-    Token->Size = Size;
-}
-
-local void Tokenize(string Code)
-{
-    Lexer.Code = Code;
-
-    ResetArena(Lexer.TokenArenaID);
-
-    usize Index = 0;
-    while (Index < Code.Size)
-    {
-        Index = SkipWhitespace(Code, Index);
-
-        if (Index >= Code.Size)
-            break;
-
-        token Token = {0};
-
-        char Character = Code.Data[Index];
-
-        if (0) {}
-        else if (IsDigit(Character))        Token = TokenizeDigit(Code, Index);
-        else if (IsPunctuation(Character))  Token = TokenizePunctuation(Code, Index);
-        else ErrorAtLocation(Index, Str("Unknown character in input"));
-
-        Index += Token.Size;
-
-        AddToken(Token.Kind, Token.From, Token.Size);
-    }
-
-    AlwaysAssert(Index == Code.Size);
-
-    AddToken(TokenKind_EOF, Index, 0);
-}
-
 local token* GetToken(token_id TokenID)
 {
     AlwaysAssert(TokenID < GetTokenCount());
@@ -240,40 +345,20 @@ local usize GetTokenCount(void)
     return (Count);
 }
 
-local token_kind GetTokenKind(token_id TokenID)
+local void PushToken(token_kind Kind, u32 From, u32 Size)
 {
-    token* Token = GetToken(TokenID);
-    token_kind Kind = Token->Kind;
-    return (Kind);
+    AlwaysAssert(GetTokenCount() < MaxTokenCount);
+
+    token* Token = PushArena(Lexer.TokenArenaID, token);
+
+    ZeroType(Token);
+
+    Token->Kind = Kind;
+    Token->From = From;
+    Token->Size = Size;
 }
 
-local string GetTokenString(token_id TokenID)
-{
-    token* Token = GetToken(TokenID);
-
-    AlwaysAssert(Token->From + Token->Size <= Lexer.Code.Size);
-
-    string String = StrData(Lexer.Code.Data + Token->From, Token->Size);
-    return (String);
-}
-
-local usize GetTokenInteger(token_id TokenID)
-{
-    usize Result = 0;
-
-    AlwaysAssert(GetTokenKind(TokenID) == TokenKind_Integer);
-
-    string Digits = GetTokenString(TokenID);
-    for (usize Index = 0; Index < Digits.Size; Index++)
-    {
-        Result *= 10;
-        Result += (Digits.Data[Index] - '0');
-    }
-
-    return (Result);
-}
-
-local void ErrorAtLocation(usize From, string Message)
+local void ErrorAtLocation(string Code, usize From, string Message)
 {
     usize Padding = From;
 
@@ -284,7 +369,7 @@ local void ErrorAtLocation(usize From, string Message)
 
     {
         Padding += Print(StdErr, Str("    '"));
-        Print(StdErr, Lexer.Code);
+        Print(StdErr, Code);
         Print(StdErr, Str("'"));
         PrintNewLine(StdErr);
     }
@@ -298,12 +383,5 @@ local void ErrorAtLocation(usize From, string Message)
     }
 
     Exit(1);
-}
-
-local void ErrorAtToken(token_id TokenID, string Message)
-{
-    token* Token = GetToken(TokenID);
-
-    ErrorAtLocation(Token->From, Message);
 }
 
