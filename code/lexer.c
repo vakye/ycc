@@ -36,24 +36,6 @@ typedef enum
 typedef u32 token_id;
 #define MaxTokenCount U32Max
 
-// NOTE(vak): Each Tokenize() call will completely reset the token buffer
-// before performing tokenization. Once tokenization is finished, the
-// first token will always reside at TokenID = 0, and the user can
-// increment their own TokenID until hitting an EOF token.
-
-// NOTE(vak): Example usage:
-//      string Code = Str("10 + 10");
-//
-//      SetupLexer();
-//      token_array Tokens = Tokenize(Code);
-//
-//      for (u32 Index = 0; Index < Tokens.Count; Index++)
-//      {
-//              token_id TokenID = TokenIDFromIndex(Tokens, Index);
-//              ...
-//              ...
-//      }
-
 typedef struct
 {
     string      Code;

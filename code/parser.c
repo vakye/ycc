@@ -32,9 +32,6 @@ typedef enum
     NodeKind_COUNT,
 } node_kind;
 
-// NOTE(vak): node_id starts from 1, and the 0 slot is reserved for
-// representing a nil node.
-
 typedef u32 node_id;
 
 #define NilNodeID (0)
