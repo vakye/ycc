@@ -285,7 +285,7 @@ local operand GenerateNode(node_id NodeID)
 
                 u16 Instruction = 0xb848;
 
-                Instruction += (DestReg & 0x8) >> 1; // NOTE(vak): REX.R
+                Instruction += (DestReg & 0x8) >> 3; // NOTE(vak): REX.B
                 Instruction += (DestReg & 0x7) << 8; // NOTE(vak): b8 + Reg
 
                 // NOTE(vak):
