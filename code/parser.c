@@ -77,6 +77,8 @@ local token_id  ParserCurrent       (void);
 local void      ParserNext          (void);
 local b32       ParserMatch         (token_kind TokenKind);
 local b32       ParserNextIfMatch   (token_kind TokenKind);
+local void      ParserExpect        (token_kind TokenKind, string ErrorMessage);
+local void      ParserExpectAndSkip (token_kind TokenKind, string ErrorMessage);
 
 local node_id   MakeNode            (node_kind Kind, token_id TokenID);
 local node_id   MakeIntegerNode     (token_id TokenID);
@@ -151,6 +153,28 @@ local node_id ParseSum(void)
     return (NodeID);
 }
 
+local node_id ParsePrimary(void)
+{
+    node_id NodeID = NilNodeID;
+    token_id TokenID = ParserCurrent();
+
+    if (ParserNextIfMatch(TokenKind_Integer))
+    {
+        NodeID = MakeIntegerNode(TokenID);
+    }
+    else if (ParserNextIfMatch('('))
+    {
+        NodeID = ParseExpression();
+        ParserExpectAndSkip(')', Str("Missing matching ')' in expression"));
+    }
+    else
+    {
+        ErrorAtToken(TokenID, Str("Syntax error"));
+    }
+
+    return (NodeID);
+}
+
 local usize GetNodeCount(void)
 {
     usize Result = GetArenaUsed(Parser.NodeArenaID) / sizeof(node);
@@ -187,23 +211,6 @@ local node_data GetNodeData(node_id NodeID)
     return (Result);
 }
 
-local node_id ParsePrimary(void)
-{
-    node_id NodeID = NilNodeID;
-    token_id TokenID = ParserCurrent();
-
-    if (ParserNextIfMatch(TokenKind_Integer))
-    {
-        NodeID = MakeIntegerNode(TokenID);
-    }
-    else
-    {
-        ErrorAtToken(TokenID, Str("Syntax error"));
-    }
-
-    return (NodeID);
-}
-
 local token_id ParserCurrent(void)
 {
     token_id TokenID = Parser.TokenID;
@@ -229,6 +236,18 @@ local b32 ParserNextIfMatch(token_kind TokenKind)
         ParserNext();
 
     return (Result);
+}
+
+local void ParserExpect(token_kind TokenKind, string ErrorMessage)
+{
+    if (!ParserMatch(TokenKind))
+        ErrorAtToken(ParserCurrent(), ErrorMessage);
+}
+
+local void ParserExpectAndSkip(token_kind TokenKind, string ErrorMessage)
+{
+    if (!ParserNextIfMatch(TokenKind))
+        ErrorAtToken(ParserCurrent(), ErrorMessage);
 }
 
 local node_id MakeNode(node_kind Kind, token_id TokenID)
