@@ -33,6 +33,8 @@ typedef enum
     //          if (GetTokenKind(...) == '+')
 } token_kind;
 
+// NOTE(vak): token_id starts from 0, and there is no nil token ID.
+
 typedef u32 token_id;
 #define MaxTokenCount U32Max
 

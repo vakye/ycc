@@ -20,6 +20,7 @@ CompileFlags=" \
     -Wno-unused-variable \
     -Wno-unused-function \
     -Wno-missing-field-initializers \
+    -Wno-switch \
     -o $OutputFile"
 
 LinkFlags=" \

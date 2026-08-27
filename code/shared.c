@@ -3,11 +3,6 @@
 // NOTE(vak): Shared definitions that are commonly used throughout the codebase.
 // ===================================================================================
 
-// ===================================================================================
-// NOTE(vak): This file is expected to be included by every other file in this
-// codebase, so it must have 0 dependencies.
-// ===================================================================================
-
 #pragma once
 
 // ===================================================================================
@@ -48,13 +43,8 @@
 // NOTE(vak): Keywords
 // ===================================================================================
 
-// NOTE(vak): Alias for "static". Marks a function or global variable as being
-// visible only within this translation unit. The compiler may perform additional
-// optimizations based on this fact. Almost all functions and global variables should
-// be marked "local" if they aren't expected to be exported for outside (dynamic
-// library or the like) usage.
-
-#define local static
+#define local static // NOTE(vak): Used on functions and global variables
+#define persist static // NOTE(vak): Used on variables inside functions
 
 // ===================================================================================
 // NOTE(vak): Macros
@@ -151,6 +141,11 @@ local void ZeroMemory(void* Dest, usize Size)               { memset(Dest, 0, Si
 local void FillMemory(void* Dest, u8 Byte, usize Size)      { memset(Dest, Byte, Size); }
 local void CopyMemory(void* Dest, void* Source, usize Size) { memcpy(Dest, Source, Size); }
 
+// NOTE(vak): Memory macros
+
+#define ZeroType(Pointer) ZeroMemory(Pointer, sizeof(*(Pointer)))
+#define ZeroArray(Pointer, Count) ZeroMemory(Pointer, sizeof(*(Pointer)) * (Count))
+
 // ===================================================================================
 // NOTE(vak): Strings
 // ===================================================================================
@@ -161,28 +156,11 @@ typedef struct
     usize Size;
 } string;
 
-// NOTE(vak): Preferred way to zero-initialize a string.
-// For example, instead of writing "string A = {0}", you can write
-// "string A = NilString"
+#define NilString                   (string){0}
 
-#define NilString (string){0}
+#define StaticStr(Literal)          {Literal, sizeof(Literal) - 1}
+#define StaticStrData(Data, Size)   {Data, Size}
 
-// NOTE(vak): Convenient macro for defining a string literal.
-// For example:
-//      Str("Hello, world!")
-// will create a 'string' struct containing a pointer to
-// "Hello, world!" and the size of the string
-// literal (excluding null terminator).
-
-#define Str(Literal) (string){Literal, sizeof(Literal) - 1}
-
-// NOTE(vak): Macro for constructing a string from a character
-// buffer.
-// For example:
-//      char* Digits = ...;
-//      usize DigitCount = ...;
-//
-//      string DigitString = StrData(Digits, DigitCount);
-
-#define StrData(Data, Size) (string){Data, Size}
+#define Str(Literal)                (string){Literal, sizeof(Literal) - 1}
+#define StrData(Data, Size)         (string){Data, Size}
 
