@@ -113,19 +113,26 @@ void entry_point(void)
     if (!setup_good)
         linux_exit(1);
 
-    ycc_string code = YCC_STRING("int main() { int _my_number23__2 = 10; char hello = _my_number23__2  + 2; return 10 + 10 + hello; }");
+    ycc_string code = YCC_STRING("120 / 2*(10 + (10 - 5)) % 7");
 
     ycc_lexer lexer = ycc_make_lexer(&(ycc_lexer_info){
         .code = code,
     });
 
-    ycc_info(YCC_STRING("lexer output:"));
+    if (YCC_IS_NULL_HANDLE(lexer))
+        linux_exit(1);
 
-    while (!ycc_lexer_finished(lexer))
-    {
-        ycc_info(ycc_lexer_current_str(lexer));
-        ycc_lexer_next(lexer);
-    }
+    ycc_parser parser = ycc_make_parser(&(ycc_parser_info){
+        .lexer = lexer,
+    });
+
+    if (YCC_IS_NULL_HANDLE(parser))
+        linux_exit(1);
+
+    ycc_node_id root_node = ycc_parser_expr(parser);
+
+    ycc_info(YCC_STRING("parser output:"));
+    ycc_log_node(parser, root_node);
 
     linux_exit(0);
 }
