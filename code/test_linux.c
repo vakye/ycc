@@ -113,6 +113,20 @@ void entry_point(void)
     if (!setup_good)
         linux_exit(1);
 
+    ycc_string code = YCC_STRING("int main() { int _my_number23__2 = 10; char hello = _my_number23__2  + 2; return 10 + 10 + hello; }");
+
+    ycc_lexer lexer = ycc_make_lexer(&(ycc_lexer_info){
+        .code = code,
+    });
+
+    ycc_info(YCC_STRING("lexer output:"));
+
+    while (!ycc_lexer_finished(lexer))
+    {
+        ycc_info(ycc_lexer_current_str(lexer));
+        ycc_lexer_next(lexer);
+    }
+
     linux_exit(0);
 }
 
