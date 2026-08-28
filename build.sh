@@ -4,8 +4,8 @@ if [ ! -d build ]; then
     mkdir -p build;
 fi
 
-SourceFile="code/linux.c"
-OutputFile="build/ycc"
+SourceFile="code/test_linux.c"
+OutputFile="build/test_ycc"
 
 CompileFlags=" \
     -g \
@@ -26,7 +26,7 @@ CompileFlags=" \
 LinkFlags=" \
     -fuse-ld=lld \
     -Wl,-nostdlib \
-    -Wl,-entry,EntryPoint"
+    -Wl,-entry,entry_point"
 
 clang $CompileFlags $LinkFlags $SourceFile
 

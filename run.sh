@@ -1,5 +1,5 @@
 #!/bin/bash
 
-./build/ycc
+./build/test_ycc
 echo exited with code $?
 
