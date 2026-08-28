@@ -79,7 +79,7 @@ local b32           IsWhitespace        (char Character);
 local b32           IsDigit             (char Character);
 local b32           IsPunctuation       (char Character);
 
-local usize         SkipWhitespace      (string Code, usize CurrentlyAt);
+local usize         CountWhitespace     (string Code, usize CurrentlyAt);
 local token         TokenizeDigit       (string Code, usize CurrentlyAt);
 local token         TokenizePunctuation (string Code, usize CurrentlyAt);
 
@@ -125,7 +125,7 @@ local token_array Tokenize(string Code)
     usize Index = 0;
     while (Index < Code.Size)
     {
-        Index = SkipWhitespace(Code, Index);
+        Index = CountWhitespace(Code, Index);
 
         if (Index >= Code.Size)
             break;
@@ -258,7 +258,7 @@ local b32 IsPunctuation(char Character)
     return (Result);
 }
 
-local usize SkipWhitespace(string Code, usize CurrentlyAt)
+local usize CountWhitespace(string Code, usize CurrentlyAt)
 {
     usize NewIndex = CurrentlyAt;
 
